@@ -14,7 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          home_city: string | null
+          id: string
+          onboarded: boolean
+          preferences: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          home_city?: string | null
+          id: string
+          onboarded?: boolean
+          preferences?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          home_city?: string | null
+          id?: string
+          onboarded?: boolean
+          preferences?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      trips: {
+        Row: {
+          budget: number
+          created_at: string
+          currency: string
+          destination: string
+          duration: number
+          group_size: number
+          id: string
+          is_public: boolean
+          itinerary: Json | null
+          public_id: string | null
+          status: Database["public"]["Enums"]["trip_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: number
+          created_at?: string
+          currency?: string
+          destination: string
+          duration?: number
+          group_size?: number
+          id?: string
+          is_public?: boolean
+          itinerary?: Json | null
+          public_id?: string | null
+          status?: Database["public"]["Enums"]["trip_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: number
+          created_at?: string
+          currency?: string
+          destination?: string
+          duration?: number
+          group_size?: number
+          id?: string
+          is_public?: boolean
+          itinerary?: Json | null
+          public_id?: string | null
+          status?: Database["public"]["Enums"]["trip_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +103,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      trip_status: "draft" | "planned" | "ongoing" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +230,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      trip_status: ["draft", "planned", "ongoing", "completed"],
+    },
   },
 } as const
