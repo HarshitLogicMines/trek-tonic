@@ -63,7 +63,7 @@ function Onboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 overflow-y-auto bg-background">
       <SiteHeader />
       <div className="mx-auto max-w-2xl px-4 py-12">
         <h1 className="font-display text-4xl font-semibold text-foreground">Tell us about you</h1>

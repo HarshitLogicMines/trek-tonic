@@ -40,7 +40,7 @@ function ItineraryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 overflow-y-auto bg-background">
       <SiteHeader />
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="mb-6 flex items-center justify-between">

@@ -1,4 +1,4 @@
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
@@ -43,36 +43,66 @@ Rules:
 - Each day should have 3-5 activities covering morning/afternoon/evening.
 - Always return valid JSON (no trailing commas, all keys quoted).`;
 
-type ChatBody = { messages?: unknown };
+type ChatBody = { messages?: unknown; model?: unknown };
 
 export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { messages } = (await request.json()) as ChatBody;
+        const url = new URL(request.url);
+        const queryModel = url.searchParams.get("model");
+
+        // Read raw body for improved error visibility
+        const rawBody = await request.text();
+        // Log raw bytes to catch hidden characters (BOM, control chars)
+        try {
+          const bytes = Array.from(Buffer.from(rawBody, 'utf8'));
+          console.error('[chat] raw body bytes:', bytes.slice(0, 80));
+          JSON.parse(rawBody);
+        } catch (e) {
+          console.error('[chat] invalid JSON body:', rawBody, e);
+          return new Response('Invalid JSON body', { status: 400 });
+        }
+
+        const body = (rawBody ? JSON.parse(rawBody) : {}) as ChatBody;
+        const { messages, model: requestedModelFromBody } = body ?? {};
+        const requestedModel = typeof requestedModelFromBody === "string" && requestedModelFromBody.trim() ? requestedModelFromBody : queryModel;
+
         if (!Array.isArray(messages)) {
           return new Response("Messages are required", { status: 400 });
         }
 
-        const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+        const key = process.env.VITE_GEMINI_API_KEY;
+        if (!key) return new Response("Missing VITE_GEMINI_API_KEY", { status: 500 });
 
-        const gateway = createLovableAiGatewayProvider(key);
-        const model = gateway("google/gemini-3-flash-preview");
+        const google = createGoogleGenerativeAI({ apiKey: key });
 
-        const result = streamText({
-          model,
-          system: SYSTEM_PROMPT,
-          messages: await convertToModelMessages(messages as UIMessage[]),
-        });
+        const defaultModel = process.env.VITE_GEMINI_MODEL ?? "gemini-2.5-flash";
+        const modelId = typeof requestedModel === "string" && requestedModel.trim() ? requestedModel : defaultModel;
 
-        return result.toUIMessageStreamResponse({
-          originalMessages: messages as UIMessage[],
-          onError: (error) => {
-            console.error("[chat] stream error", error);
-            return "The AI planner ran into an error. Please try again.";
-          },
-        });
+        // Fallback to a safe default if an invalid modelId was supplied
+        const safeModelId = typeof modelId === "string" ? modelId : defaultModel;
+
+        try {
+          const model = google(safeModelId);
+
+          const result = streamText({
+            model,
+            system: SYSTEM_PROMPT,
+            messages: await convertToModelMessages(messages as UIMessage[]),
+          });
+
+          return result.toUIMessageStreamResponse({
+            originalMessages: messages as UIMessage[],
+            onError: (error) => {
+              console.error("[chat] stream error", error);
+              return "The AI planner ran into an error. Please try again.";
+            },
+          });
+        } catch (error) {
+          console.error("[chat] handler error", error);
+          return new Response("AI planner failed to start streaming", { status: 500 });
+        }
       },
     },
   },
